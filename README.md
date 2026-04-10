@@ -1,3 +1,0 @@
-# Flowchart
-
-![flowchart](flowchart.JPG)
