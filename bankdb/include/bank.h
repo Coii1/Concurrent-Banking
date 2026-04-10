@@ -1,0 +1,1 @@
+/* Declarations for bank and account data structures and related interfaces. */

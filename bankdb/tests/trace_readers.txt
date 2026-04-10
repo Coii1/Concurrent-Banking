@@ -1,0 +1,1 @@
+# Trace input for Test 2: concurrent reader-focused behavior.

@@ -1,0 +1,1 @@
+# Trace input for Test 4: abort handling and rollback-related behavior.

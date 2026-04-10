@@ -1,0 +1,1 @@
+# Trace input for Test 3: lock contention and deadlock scenario validation.

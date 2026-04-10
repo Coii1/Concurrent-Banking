@@ -1,0 +1,1 @@
+/* Declarations for timer thread control and logical clock helper functions. */
