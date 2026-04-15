@@ -1,1 +1,5 @@
 # Initial account definitions and starting balances for test scenarios.
+0   10000
+1   25000
+10  50000
+20  30000
