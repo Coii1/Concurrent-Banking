@@ -4,6 +4,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static int init_account_slot(Account* slot, int account_id, int balance_centavos, int line_no, const char* line) {
+    slot->account_id = account_id;
+    slot->balance_centavos = balance_centavos;
+
+    if (pthread_mutex_init(&slot->lock, NULL) != 0) {
+        fprintf(stderr, "Failed to init account lock at line %d: %s", line_no, line);
+        return -1;
+    }
+
+    return 0;
+}
+
 int load_accounts_file(Bank* bank, const char* accounts_path) {
     FILE* fp;
     char line[256];
@@ -33,25 +45,19 @@ int load_accounts_file(Bank* bank, const char* accounts_path) {
         }
         
         
-        Account *account = create_account(account_id, balance_centavos);
-        if (account == NULL) {
-            fprintf(stderr, "Failed to create account for line %d: %s", line_no, line);
-            continue;
-        }
-
         if (bank->num_accounts >= MAX_ACCOUNTS) {
             fprintf(stderr, "Exceeded maximum number of accounts at line %d: %s", line_no, line);
-            free(account);
+            continue;
+        }
+        
+        Account *slot = &bank->accounts[bank->num_accounts];
+        if (init_account_slot(slot, account_id, balance_centavos, line_no, line) != 0) {
             continue;
         }
 
-        bank->accounts[bank->num_accounts++] = *account;
+        bank->num_accounts++;
         /*
-        Unsure: currently, we allocate and create an account struct with create_account, 
-        then copy it into the bank's accounts array, 
-
-
-        should we instead directly insert the created account into the bank's accounts array without copying?
+        No more malloc for temporary Account, so no leak.
         */
     }
 
