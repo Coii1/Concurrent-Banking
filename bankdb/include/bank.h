@@ -10,7 +10,7 @@
 typedef struct {
     int account_id;         
     int balance_centavos;   
-    pthread_rwlock_t lock;   // Per-account locks // might say identifier "pthread_rwlock_t" is undefined, but it is defined in <pthread.h> when _XOPEN_SOURCE or _GNU_SOURCE is defined, this is just an IDE issue
+    pthread_mutex_t lock;  // Temporary: use mutex for the time being kay amo pa na negets ko, change to rwlock later.
 } Account;
 
 typedef struct {
@@ -23,7 +23,9 @@ typedef struct {
 
 Bank* create_bank();
 
-Account* create_account(Bank* bank, int account_number, double initial_balance);
+void destroy_bank(Bank* bank);
+
+Account* create_account(int account_id, int balance_centavos);
 
 void deposit(int account_id, int amount_centavos);
 
