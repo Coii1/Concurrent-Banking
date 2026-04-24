@@ -14,6 +14,7 @@ typedef enum {
 
 typedef struct {
     OpType type;
+    int tick;                // Tick for this operation
     int account_id;          // Primary account
     int amount_centavos;     // Amount in centavos
     int target_account;      // For TRANSFER only
