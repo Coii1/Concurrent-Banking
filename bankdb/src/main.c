@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
     }
     char *accounts_path = argv[1];
     char *trace_path = argv[2];
+    int tick_interval_ms = 1; // can make this configurable later if needed; hardcoded to 1 second per tick for now.
     
 
     //initialize bank, accounts, and locks.  
@@ -97,13 +98,20 @@ int main(int argc, char* argv[]) {
 
     
     //initialize timer thread and logical clock
-    // pthread_t timer_tid;
-    // if (pthread_create(&timer_tid, NULL, timer_thread, NULL) != 0) {
-    //     fprintf(stderr, "Failed to create timer thread\n");
-    //     // free(txs);
-    //     destroy_bank(bank);// TODO: maybe put this repetitive code to a cleanup function
-    //     return 1;
-    // }
+    pthread_t timer_tid; //TODO: put this in timer.c and make it static there since we don't need to access it outside of timer.c, and just have a timer_init() function that creates the thread and initializes the clock. Here for now we just declare it in main for simplicity.
+    timer_init();
+    if (pthread_create(&timer_tid, NULL, &timer_thread, &tick_interval_ms) != 0) {
+        fprintf(stderr, "Failed to create timer thread\n");
+        destroy_bank(bank);// TODO: maybe put this repetitive code to a cleanup function
+        return 1;
+    }
+
+    if (pthread_join(timer_tid, NULL) != 0) {
+        perror("Failed to join thread");
+    }
+    timer_destroy();
+
+
 
 
     // TODO:  create transaction threads, and execute transactions
