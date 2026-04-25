@@ -26,17 +26,18 @@ void destroy_bank(Bank* bank){
     free(bank);
 }
 
-Account* create_account(int account_id, int balance_centavos){
-    Account *account = malloc(sizeof(Account));
+// not used anymore since we are directly initializing accounts in the bank struct without malloc, but keeping it here for reference for now. can remove later.
+// Account* create_account(int account_id, int balance_centavos){
+//     Account *account = malloc(sizeof(Account));
 
-    if (!account) {
-        fprintf(stderr, "Failed to allocate memory for account\n");
-        exit(EXIT_FAILURE);
-    }
+//     if (!account) {
+//         fprintf(stderr, "Failed to allocate memory for account\n");
+//         exit(EXIT_FAILURE);
+//     }
     
-    account->account_id = account_id;
-    account->balance_centavos = balance_centavos;
-    pthread_mutex_init(&account->lock, NULL);
-    return account;
+//     account->account_id = account_id;
+//     account->balance_centavos = balance_centavos;
+//     pthread_mutex_init(&account->lock, NULL);
+//     return account;
     
-}
+// }

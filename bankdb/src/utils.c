@@ -2,6 +2,7 @@
 
 #include "bank.h"
 #include "transaction.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,7 +50,7 @@ int load_accounts_file(Bank* bank, const char* accounts_path) {
         
         if (bank->num_accounts >= MAX_ACCOUNTS) {
             fprintf(stderr, "Exceeded maximum number of accounts at line %d: %s", line_no, line);
-            continue;
+            break; //stop processing if we reach max accounts, to avoid overflow;
         }
         
         Account *slot = &bank->accounts[bank->num_accounts];
@@ -69,18 +70,18 @@ int load_accounts_file(Bank* bank, const char* accounts_path) {
     return 0;
 }
 
-int load_transactions_file(const char* trace_path, Transaction* txs[], int max_txs) {
+int load_transactions_file(const char* trace_path, Transaction* txs[]) {
     FILE* trace_fp;
     char line[256];
     int line_no = 0;
     int tx_count = 0;
     int i;
 
-    if (trace_path == NULL || txs == NULL || max_txs <= 0) {
+    if (trace_path == NULL || txs == NULL || MAX_TRANSACTIONS <= 0) {
         return -1;
     }
 
-    for (i = 0; i < max_txs; i++) {
+    for (i = 0; i < MAX_TRANSACTIONS; i++) {
         txs[i] = NULL;
     }
 
@@ -115,21 +116,34 @@ int load_transactions_file(const char* trace_path, Transaction* txs[], int max_t
 
 		tx_id = atoi((tx_label[0] == 'T' || tx_label[0] == 't') ? tx_label + 1 : tx_label);
 
+		// Check if transaction already exists so we can append operations to it, otherwise create new transaction
 		for (int i = 0; i < tx_count; i++) {
 			if (txs[i] != NULL && txs[i]->tx_id == tx_id) {
-				tx_index = i;
+				tx_index = i;					//tx_index refers to the index in the txs array where the transaction with tx_id is stored.
 				break;
 			}
 		}
+		/*
+		 each line does an O(tx_count) search ⇒ total can become O(lines × transactions).
+		 BUT no Works even if tx IDs are not contiguous (e.g., T1, T7, T500) as long as count ≤ MAX.
+		 TODO: if this becomes a performance bottleneck, optimize by using a hash map or direct indexing 
+		*/
 
+		// create new transaction if not found, and add to txs array 
 		if (tx_index < 0) {
-			if (tx_count >= max_txs) {
+			if (tx_count >= MAX_TRANSACTIONS) {
 				fprintf(stderr, "Exceeded maximum number of transactions at line %d: %s", line_no, line);
 				fclose(trace_fp);
 				return -1;
 			}
 
-			txs[tx_count] = (Transaction*)calloc(1, sizeof(Transaction));
+			txs[tx_count] = (Transaction*)calloc(1, sizeof(Transaction));   
+			/*
+			use calloc to zero-initialize the transaction struct, so we don't have to manually set num_ops and status to 0 and TX_RUNNING respectively.
+			also avoids potential uninitialized memory issues.
+			remember to free this later in main after we're done with the transactions.
+			*/
+
 			if (txs[tx_count] == NULL) {
 				fclose(trace_fp);
 				return -1;
@@ -142,6 +156,7 @@ int load_transactions_file(const char* trace_path, Transaction* txs[], int max_t
 			tx_count++;
 		}
 
+		//Set new transaction's start_tick to earliest tick among its operations
 		tx = txs[tx_index];
 		if (tick < tx->start_tick) {
 			tx->start_tick = tick;
@@ -154,7 +169,7 @@ int load_transactions_file(const char* trace_path, Transaction* txs[], int max_t
 		}
 
 		op = &tx->ops[tx->num_ops];
-		memset(op, 0, sizeof(*op));
+		memset(op, 0, sizeof(*op)); // clear's Operation struct to all-zero before filling fields to avoid leftover garbage values.
 		op->tick = tick;
 
 		if (strcmp(op_str, "DEPOSIT") == 0) {
@@ -200,8 +215,8 @@ int load_transactions_file(const char* trace_path, Transaction* txs[], int max_t
 		}
 
 		tx->num_ops++;
-		}
+	}
 
 	fclose(trace_fp);
-	return 0;
+	return tx_count;
 }

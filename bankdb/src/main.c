@@ -18,6 +18,7 @@ static const char* op_name(OpType t) {
     }
 }
 
+// just for debugging, can remove later
 static void print_loaded_transactions(Transaction* txs[], int max_txs) {
     int tx_printed = 0;
 
@@ -52,6 +53,13 @@ static void print_loaded_transactions(Transaction* txs[], int max_txs) {
     printf("\nTotal loaded transactions: %d\n", tx_printed);
 }
 
+static void print_loaded_accounts(Bank* bank) {
+    printf("Loaded %d accounts:\n", bank->num_accounts);
+    for (int i = 0; i < bank->num_accounts; i++) {
+        printf("Account ID: %d, Balance: %d centavos\n", bank->accounts[i].account_id, bank->accounts[i].balance_centavos);
+    }
+}
+
 int main(int argc, char* argv[]) {
 
     //parse CLI args for accounts file and trace file paths.
@@ -61,18 +69,7 @@ int main(int argc, char* argv[]) {
     }
     char *accounts_path = argv[1];
     char *trace_path = argv[2];
-    /*
-    Note: current cli interface is 
-    ./bin/bankdb tests/accounts.txt tests/trace_simple.txt
-
-    instead of $ ./bankdb --accounts=accounts.txt --trace=trace.txt \
-           --deadlock=prevention --tick-ms=100
     
-    for simplcity and initial development.
-    TODO: implement proper CLI parsing with --accounts= 
-    */
-
-
 
     //initialize bank, accounts, and locks.  
     Bank* bank = create_bank();
@@ -86,17 +83,15 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     // load transaction trace
-    if (load_transactions_file(trace_path, txs, MAX_TRANSACTIONS)) {
+    if (load_transactions_file(trace_path, txs) < 0) {
         fprintf(stderr, "Failed to load transactions from %s\n", trace_path);
         destroy_bank(bank);
         return 1;    
     }
 
-   //print loaded accounts for verification
-    printf("Loaded %d accounts:\n", bank->num_accounts);
-    for (int i = 0; i < bank->num_accounts; i++) {
-        printf("Account ID: %d, Balance: %d centavos\n", bank->accounts[i].account_id, bank->accounts[i].balance_centavos);
-    }
+
+    print_loaded_accounts(bank);
+    
 
     print_loaded_transactions(txs, MAX_TRANSACTIONS);
 
@@ -122,9 +117,3 @@ int main(int argc, char* argv[]) {
     return 0; 
 }
 
-/*
-To run:
-cd bankdb
-gcc -Wall -Wextra -std=c11 -Iinclude src/*.c -o bin/bankdb -pthread
-./bin/bankdb tests/accounts.txt tests/trace_simple.txt
-*/
