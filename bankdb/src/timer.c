@@ -15,12 +15,12 @@ static bool all_transactions_done = false;
 void* timer_thread(void* arg) {
     // while (!all_transactions_done) {
     while (global_tick < 10) { //for testing, run the timer for 100 ticks then stop. Change back to while loop with all_transactions_done flag for final version.
+        printf("Global Tick: %d\n", global_tick); //for debugging, can remove later
         
         // usleep(*(int*)arg * 1000); //tick_interval_ms = 100ms for now, can make it configurable later if needed
         sleep(*(int*)arg); //for testing, tick every 1 second to make it easier to observe the transactions executing at their respective ticks. Change back to usleep with arg for final version.
         pthread_mutex_lock(&tick_lock);
         global_tick++;
-        printf("Tick: %d\n", global_tick); //for debugging, can remove later
         
         // Wake all transactions waiting for this tick
         pthread_cond_broadcast(&tick_changed);

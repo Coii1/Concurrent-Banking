@@ -50,7 +50,7 @@ static void print_loaded_transactions(Transaction* txs[], int max_txs) {
         }
     }
 
-    printf("\nTotal loaded transactions: %d\n", tx_printed);
+    printf("\nTotal loaded transactions: %d\n\n", tx_printed);
 }
 
 static void print_loaded_accounts(Bank* bank) {
