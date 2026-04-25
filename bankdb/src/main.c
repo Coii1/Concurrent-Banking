@@ -84,7 +84,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     // load transaction trace
-    if (load_transactions_file(trace_path, txs) < 0) {
+    int txs_count = load_transactions_file(trace_path, txs);
+    if (txs_count < 0) {
         fprintf(stderr, "Failed to load transactions from %s\n", trace_path);
         destroy_bank(bank);
         return 1;    
@@ -105,6 +106,21 @@ int main(int argc, char* argv[]) {
         destroy_bank(bank);// TODO: maybe put this repetitive code to a cleanup function
         return 1;
     }
+
+    pthread_t txs_threads[txs_count];
+    for (int i = 0; i < txs_count; i++){
+        if (pthread_create(&txs_threads[i], NULL, &execute_transaction, txs[i]) != 0) {
+            fprintf(stderr, "Failed to create thread for transaction T%d\n", txs[i]->tx_id);
+            //cleanup
+            for (int j = 0; j < i; j++) {
+                pthread_cancel(txs_threads[j]);
+            }
+            pthread_cancel(timer_tid);
+            destroy_bank(bank);
+            return 1;
+        }
+    }
+    
 
     if (pthread_join(timer_tid, NULL) != 0) {
         perror("Failed to join thread");
