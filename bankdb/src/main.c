@@ -120,6 +120,12 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
+    for (int i = 0; i < txs_count; i++) {
+        if (pthread_join(txs_threads[i], NULL) != 0) {
+            fprintf(stderr, "Failed to join thread for transaction T%d\n", txs[i]->tx_id);
+        }
+    }
     
 
     if (pthread_join(timer_tid, NULL) != 0) {
