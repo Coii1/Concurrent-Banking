@@ -107,13 +107,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    pthread_t txs_threads[txs_count];
+    // pthread_t txs_threads[txs_count];
     for (int i = 0; i < txs_count; i++){
-        if (pthread_create(&txs_threads[i], NULL, &execute_transaction, txs[i]) != 0) {
+        if (pthread_create(&txs[i]->thread, NULL, &execute_transaction, txs[i]) != 0) {
             fprintf(stderr, "Failed to create thread for transaction T%d\n", txs[i]->tx_id);
             //cleanup
             for (int j = 0; j < i; j++) {
-                pthread_cancel(txs_threads[j]);
+                pthread_cancel(txs[j]->thread);
             }
             pthread_cancel(timer_tid);
             destroy_bank(bank);
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < txs_count; i++) {
-        if (pthread_join(txs_threads[i], NULL) != 0) {
+        if (pthread_join(txs[i]->thread, NULL) != 0) {
             fprintf(stderr, "Failed to join thread for transaction T%d\n", txs[i]->tx_id);
         }
     }
