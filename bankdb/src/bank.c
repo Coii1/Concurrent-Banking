@@ -20,7 +20,7 @@ void destroy_bank(Bank* bank){
     pthread_mutex_destroy(&bank->bank_lock);
     //free accounts
     for (int i = 0; i < bank->num_accounts; i++) {
-        pthread_mutex_destroy(&bank->accounts[i].lock);
+        pthread_rwlock_destroy(&bank->accounts[i].lock);
         // free(&bank->accounts[i]); //accounts are stored by value in the bank struct, so we don't need to free them individually
     }
     free(bank);
@@ -37,7 +37,7 @@ void destroy_bank(Bank* bank){
     
 //     account->account_id = account_id;
 //     account->balance_centavos = balance_centavos;
-//     pthread_mutex_init(&account->lock, NULL);
+//     pthread_rwlock_init(&account->lock, NULL);
 //     return account;
     
 // }

@@ -1,12 +1,12 @@
 /* Entry point: CLI parsing, configuration loading, and subsystem initialization. */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "bank.h"
 #include "lock_mgr.h"
 #include "transaction.h"
 #include "timer.h"
 #include "utils.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 static const char* op_name(OpType t) {
     switch (t) {
@@ -60,6 +60,8 @@ static void print_loaded_accounts(Bank* bank) {
     }
 }
 
+Bank* bank = NULL; // Global bank instance for now, remove when buffer pool is implemented
+
 int main(int argc, char* argv[]) {
 
     //parse CLI args for accounts file and trace file paths.
@@ -73,8 +75,7 @@ int main(int argc, char* argv[]) {
     
 
     //initialize bank, accounts, and locks.  
-    Bank* bank = create_bank();
-    
+    bank = create_bank(); 
     //declare transactions array in main for now. NOT SURE if it should be added in the bank struct
     Transaction *txs[MAX_TRANSACTIONS];
     

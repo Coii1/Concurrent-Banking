@@ -11,7 +11,7 @@ static int init_account_slot(Account* slot, int account_id, int balance_centavos
     slot->account_id = account_id;
     slot->balance_centavos = balance_centavos;
 
-    if (pthread_mutex_init(&slot->lock, NULL) != 0) {
+    if (pthread_rwlock_init(&slot->lock, NULL) != 0) {
         fprintf(stderr, "Failed to init account lock at line %d: %s", line_no, line);
         return -1;
     }
