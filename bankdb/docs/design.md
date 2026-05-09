@@ -10,6 +10,8 @@ To run:
     //other way: gcc -Wall -Wextra -std=c11 -Iinclude src/*.c -o bin/bankdb -pthread -fsanitize=thread
     ./bin/bankdb tests/accounts.txt tests/trace_simple.txt
 
+    <!-- Other way to run -->
+    setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
 
 
 Note: current cli interface is 
