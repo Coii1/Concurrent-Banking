@@ -1,7 +1,7 @@
 /* Declarations for bank and account data structures and related interfaces. */
+#define _XOPEN_SOURCE 500 
 #ifndef BANK_H
 #define BANK_H
-#define _XOPEN_SOURCE 500  // or // #define _GNU_SOURCE for rwlocks
 #define MAX_ACCOUNTS 100
 
 #include <stdbool.h>
