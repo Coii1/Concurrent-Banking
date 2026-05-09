@@ -1,7 +1,9 @@
 /* Metrics aggregation, timing stats, counters, and reporting output logic. */
-#include "metrics.h"
 #include "bank.h"
 #include "transaction.h"
+#include "metrics.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 long total_deposited = 0;
 long total_withdrawn = 0;

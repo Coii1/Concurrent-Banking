@@ -3,6 +3,11 @@
 #define METRICS_H
 
 #include <pthread.h>
+#include "bank.h"
+#include "transaction.h"
+#include "metrics.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 extern long total_deposited;
 extern long total_withdrawn;
