@@ -2,7 +2,6 @@
 
 #ifndef TIMER_H
 #define TIMER_H
-
 #include <pthread.h>
 
 // Global simulation clock (shared by all threads)
@@ -16,6 +15,7 @@ void* timer_thread(void* arg) ;
 // Transactions wait until their start_tick
 void wait_until_tick(int target_tick) ;
 
+void timer_stop(void);
 void timer_init(void);
 void timer_destroy(void);
 #endif // TIMER_H
