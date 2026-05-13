@@ -66,14 +66,12 @@ static void print_loaded_accounts(Bank* bank) {
 char *accounts_path = NULL;
 char *trace_path = NULL;
 int tick_interval_ms = 100; // Default from manual
-char *deadlock_strategy = "prevention"; // Default
 
 // Use getopt to read input from terminal and assign to config variables
 void parse_args(int argc, char* argv[]) {
     static struct option long_options[] = {
         {"accounts", required_argument, 0, 'a'},
         {"trace",    required_argument, 0, 't'},
-        {"deadlock", required_argument, 0, 'd'},
         {"tick-ms",  required_argument, 0, 'm'},
         {0, 0, 0, 0}
     };
@@ -84,13 +82,12 @@ void parse_args(int argc, char* argv[]) {
         switch (opt) {
             case 'a': accounts_path = optarg; break;
             case 't': trace_path = optarg; break;
-            case 'd': deadlock_strategy = optarg; break;
             case 'm': tick_interval_ms = atoi(optarg); break;
         }
     }
 
     if (!accounts_path || !trace_path) {
-        fprintf(stderr, "Usage: %s --accounts=FILE --trace=FILE [--deadlock=prevention|detection] [--tick-ms=N]\n", argv[0]);
+        fprintf(stderr, "Usage: %s --accounts=FILE --trace=FILE [--tick-ms=N]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 }
