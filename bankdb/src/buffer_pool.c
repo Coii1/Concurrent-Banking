@@ -15,11 +15,19 @@ void init_buffer_pool(BufferPool* pool) {
     sem_init(&pool->full_slots, 0, 0);             
     // Ensure only one transaction worker can look at the table at a time to see which spots are empty or full
     pthread_mutex_init(&pool->pool_lock, NULL);     
+    pool->total_loads = 0;
+    pool->total_unloads = 0;
+    pool->current_in_use = 0;
+    pool->peak_in_use = 0;
+    pool->blocked_loads = 0;
 }
 
 // When a transaction worker needs an account, take a ticket from the empty_slots bowl
 void load_account(BufferPool* pool, int account_id) {
-    sem_wait(&pool->empty_slots); // Block if pool is full
+    if (sem_trywait(&pool->empty_slots) != 0) {
+        pool->blocked_loads++;
+        sem_wait(&pool->empty_slots); // Block if pool is full
+    }
 
     // Once there is space, grab pool lock so no one else can move folders around
     pthread_mutex_lock(&pool->pool_lock);
@@ -28,6 +36,11 @@ void load_account(BufferPool* pool, int account_id) {
         if (!pool->slots[i].in_use) {
             pool->slots[i].account_id = account_id;
             pool->slots[i].in_use = true;
+            pool->total_loads++;
+            pool->current_in_use++;
+            if (pool->current_in_use > pool->peak_in_use) {
+                pool->peak_in_use = pool->current_in_use;
+            }
             break;
         }
     }
@@ -50,6 +63,10 @@ void unload_account(BufferPool* pool, int account_id) {
         if (pool->slots[i].in_use && pool->slots[i].account_id == account_id) {
             pool->slots[i].in_use = false;
             pool->slots[i].account_id = -1;
+            pool->total_unloads++;
+            if (pool->current_in_use > 0) {
+                pool->current_in_use--;
+            }
             break;
         }
     }
@@ -57,4 +74,13 @@ void unload_account(BufferPool* pool, int account_id) {
     pthread_mutex_unlock(&pool->pool_lock);
     // Put ticket back into empty_slots blow and let next transaction worker know there is a free spot available
     sem_post(&pool->empty_slots);
+}
+
+void print_buffer_pool_report(const BufferPool* pool) {
+    printf("\n=== Buffer Pool Report ===\n");
+    printf("Pool size: %d slots\n", BUFFER_POOL_SIZE);
+    printf("Total loads: %d\n", pool->total_loads);
+    printf("Total unloads: %d\n", pool->total_unloads);
+    printf("Peak usage: %d slots\n", pool->peak_in_use);
+    printf("Blocked operations (pool full): %d\n", pool->blocked_loads);
 }

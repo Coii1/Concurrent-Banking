@@ -2,12 +2,14 @@
 #include "bank.h"
 #include "transaction.h"
 #include "metrics.h"
+#include "buffer_pool.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 long total_deposited = 0;
 long total_withdrawn = 0;
 pthread_mutex_t metrics_lock;
+extern BufferPool buffer_pool;
 
 void metrics_init(void) {
     // Create the lock to protect the record called in main before everything starts
@@ -66,4 +68,6 @@ void print_final_report(Bank* bank, Transaction* txs[], int txs_count, long init
             txs[i]->tx_id, txs[i]->start_tick, txs[i]->actual_start, 
             txs[i]->actual_end, wait, status);
     }
+
+    print_buffer_pool_report(&buffer_pool);
 }

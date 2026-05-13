@@ -18,6 +18,11 @@ typedef struct {
     sem_t empty_slots;
     sem_t full_slots;
     pthread_mutex_t pool_lock;
+    int total_loads;
+    int total_unloads;
+    int current_in_use;
+    int peak_in_use;
+    int blocked_loads;
 } BufferPool;
 
 void init_buffer_pool(BufferPool* pool);
@@ -27,5 +32,7 @@ void load_account(BufferPool* pool, int account_id);
 
 // Unload account from buffer pool (consumer)
 void unload_account(BufferPool* pool, int account_id);
+
+void print_buffer_pool_report(const BufferPool* pool);
 
 #endif // BUFFER_POOL_H
