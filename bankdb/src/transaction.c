@@ -8,6 +8,25 @@
 #include <stdbool.h>
 
 extern BufferPool buffer_pool;
+extern bool verbose_logging;
+
+static int current_tick(void) {
+    int tick;
+    pthread_mutex_lock(&tick_lock);
+    tick = global_tick;
+    pthread_mutex_unlock(&tick_lock);
+    return tick;
+}
+
+static const char* op_type_name(OpType type) {
+    switch (type) {
+        case OP_DEPOSIT: return "DEPOSIT";
+        case OP_WITHDRAW: return "WITHDRAW";
+        case OP_TRANSFER: return "TRANSFER";
+        case OP_BALANCE: return "BALANCE";
+        default: return "UNKNOWN";
+    }
+}
 
 // Helper to find account with matching id and lock it appropriately
 static Account* find_account(int account_id) {
@@ -31,7 +50,9 @@ static Account* find_account(int account_id) {
 
 // rdlock before reading balance and unlock after - multiple workers can check the account balance at the same time without changing anything
 static int get_balance(int account_id) {
-    printf("Getting balance for account %d (placeholder value)\n", account_id);
+    if (verbose_logging) {
+        printf("Tick %d: BALANCE account %d\n", current_tick(), account_id);
+    }
     load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
     if (!acc) {
@@ -50,7 +71,9 @@ static int get_balance(int account_id) {
 
 // rwlock so no one else can look at the account until done with the update (deposit and withdraw)
 static void deposit(int account_id, int amount_centavos) {
-    printf("Depositing %d centavos to account %d\n", amount_centavos, account_id);
+    if (verbose_logging) {
+        printf("Tick %d: DEPOSIT account %d amount %d\n", current_tick(), account_id, amount_centavos);
+    }
     load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
     if (!acc) {
@@ -69,7 +92,9 @@ static void deposit(int account_id, int amount_centavos) {
 }
 
 static bool withdraw(int account_id, int amount_centavos) {
-    printf("Withdrawing %d centavos from account %d\n", amount_centavos, account_id);
+    if (verbose_logging) {
+        printf("Tick %d: WITHDRAW account %d amount %d\n", current_tick(), account_id, amount_centavos);
+    }
     load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
     if (!acc) {
@@ -91,7 +116,9 @@ static bool withdraw(int account_id, int amount_centavos) {
     
     pthread_rwlock_unlock(&acc->lock);
     unload_account(&buffer_pool, account_id);
-    printf("Insufficient funds in account %d\n", account_id);
+    if (verbose_logging) {
+        printf("Tick %d: WITHDRAW failed (insufficient funds) account %d\n", current_tick(), account_id);
+    }
     return false; // Account not found, treat as insufficient funds for simplicity for now
 }
 
@@ -107,7 +134,9 @@ static bool transfer(int from_id, int to_id, int amount_centavos) {
 
     if (from_id == to_id || amount_centavos <= 0) return false;
 
-    printf("Transferring %d centavos from account %d to account %d\n", amount_centavos, from_id, to_id);
+    if (verbose_logging) {
+        printf("Tick %d: TRANSFER from %d to %d amount %d\n", current_tick(), from_id, to_id, amount_centavos);
+    }
 
     // Locate account indices
     for (i = 0; i < bank->num_accounts; i++) {
@@ -128,6 +157,10 @@ static bool transfer(int from_id, int to_id, int amount_centavos) {
         acc_second = &bank->accounts[from_index];
         first_id = to_id;
         second_id = from_id;
+    }
+
+    if (verbose_logging) {
+        printf("Tick %d: Lock ordering first=%d second=%d\n", current_tick(), first_id, second_id);
     }
 
     load_account(&buffer_pool, first_id);
@@ -168,6 +201,10 @@ void* execute_transaction(void* arg) {
     tx->actual_start = global_tick;
     pthread_mutex_unlock(&tick_lock);
 
+    if (verbose_logging) {
+        printf("Tick %d: T%d started\n", tx->actual_start, tx->tx_id);
+    }
+
     for (int i = 0; i < tx->num_ops; i++) {
         Operation* op = &tx->ops[i];
 
@@ -207,6 +244,10 @@ void* execute_transaction(void* arg) {
                 break;
         }
 
+        if (verbose_logging) {
+            printf("Tick %d: T%d completed %s\n", current_tick(), tx->tx_id, op_type_name(op->type));
+        }
+
         if (tx->status == TX_ABORTED) {
             break;
         }
@@ -219,6 +260,11 @@ void* execute_transaction(void* arg) {
 
     if (tx->status != TX_ABORTED) {
         tx->status = TX_COMMITTED;
+        if (verbose_logging) {
+            printf("Tick %d: T%d committed\n", current_tick(), tx->tx_id);
+        }
+    } else if (verbose_logging) {
+        printf("Tick %d: T%d aborted\n", current_tick(), tx->tx_id);
     }
     return NULL;
 }

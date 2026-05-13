@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+extern bool verbose_logging;
+
 // Global simulation clock (shared by all threads)
 volatile int global_tick;
 pthread_mutex_t tick_lock;
@@ -22,6 +24,10 @@ void* timer_thread(void* arg) {
 
     // Use while true instead to immediately lock the mutex: The thread cannot know when to stop just with its own cpu cache so it has to
     // enter the loop to check the timer thread for the official update
+
+    if (verbose_logging) {
+        printf("Timer thread started (tick interval: %dms)\n", *(int*)arg);
+    }
 
     while (true) {
     // while (global_tick < 10) { //for testing, run the timer for 100 ticks then stop. Change back to while loop with all_transactions_done flag for final version.

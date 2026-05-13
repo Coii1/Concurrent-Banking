@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <stdbool.h>
+#include <string.h>
 
 static const char* op_name(OpType t) {
     switch (t) {
@@ -67,13 +69,17 @@ static void print_loaded_accounts(Bank* bank) {
 char *accounts_path = NULL;
 char *trace_path = NULL;
 int tick_interval_ms = 100; // Default from manual
+char *deadlock_strategy = NULL;
+bool verbose_logging = false;
 
 // Use getopt to read input from terminal and assign to config variables
 void parse_args(int argc, char* argv[]) {
     static struct option long_options[] = {
         {"accounts", required_argument, 0, 'a'},
         {"trace",    required_argument, 0, 't'},
+        {"deadlock", required_argument, 0, 'd'},
         {"tick-ms",  required_argument, 0, 'm'},
+        {"verbose",  no_argument,       0, 'v'},
         {0, 0, 0, 0}
     };
 
@@ -83,12 +89,19 @@ void parse_args(int argc, char* argv[]) {
         switch (opt) {
             case 'a': accounts_path = optarg; break;
             case 't': trace_path = optarg; break;
+            case 'd': deadlock_strategy = optarg; break;
             case 'm': tick_interval_ms = atoi(optarg); break;
+            case 'v': verbose_logging = true; break;
         }
     }
 
-    if (!accounts_path || !trace_path) {
-        fprintf(stderr, "Usage: %s --accounts=FILE --trace=FILE [--tick-ms=N]\n", argv[0]);
+    if (!accounts_path || !trace_path || !deadlock_strategy) {
+        fprintf(stderr, "Usage: %s --accounts=FILE --trace=FILE --deadlock=prevention [--tick-ms=N] [--verbose]\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    if (strcmp(deadlock_strategy, "prevention") != 0) {
+        fprintf(stderr, "Unsupported deadlock strategy: %s\n", deadlock_strategy);
         exit(EXIT_FAILURE);
     }
 }
