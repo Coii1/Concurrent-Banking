@@ -66,9 +66,19 @@ Manual build (without Makefile):
 - Without it, operations would execute immediately and remove concurrent scheduling behavior.
 - The timer thread enables deterministic scheduling based on trace ticks.
 
+## ThreadSanitizer Notes
+- Use `make debug` to build with ThreadSanitizer.
+- Run `trace_readers.txt` with prevention and confirm zero warnings.
+
+## Additional Tests
+- trace_abort_mid.txt: abort should stop later ops in the same transaction.
+- trace_rw_mix.txt: concurrent reads with a writer on the same account.
+
 ## Test Commands
     ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --deadlock=prevention --tick-ms=100
     ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
     ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --deadlock=prevention --tick-ms=100
     ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --deadlock=prevention --tick-ms=100
     ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --deadlock=prevention --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort_mid.txt --deadlock=prevention --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_rw_mix.txt --deadlock=prevention --tick-ms=100

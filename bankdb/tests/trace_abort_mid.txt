@@ -1,0 +1,4 @@
+# Abort mid-transaction; later ops must not run
+T1 0 WITHDRAW 10 15000
+T1 1 DEPOSIT 10 1000
+T2 0 DEPOSIT 20 500
