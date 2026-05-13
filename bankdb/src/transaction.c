@@ -174,13 +174,18 @@ void* execute_transaction(void* arg) {
                 break;
         }
 
+        if (tx->status == TX_ABORTED) {
+            break;
+        }
+
     }
 
     pthread_mutex_lock(&tick_lock);
     tx->actual_end = global_tick;
     pthread_mutex_unlock(&tick_lock);
-    tx->status = TX_COMMITTED; // or ABORTED if a check fails
-    return NULL;
 
+    if (tx->status != TX_ABORTED) {
+        tx->status = TX_COMMITTED;
+    }
     return NULL;
 }
