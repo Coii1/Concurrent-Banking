@@ -3,8 +3,11 @@
 #include "transaction.h"
 #include "timer.h"
 #include "metrics.h"
+#include "buffer_pool.h"
 #include <stdio.h>
 #include <stdbool.h>
+
+extern BufferPool buffer_pool;
 
 // Helper to find account with matching id and lock it appropriately
 static Account* find_account(int account_id) {
@@ -29,13 +32,18 @@ static Account* find_account(int account_id) {
 // rdlock before reading balance and unlock after - multiple workers can check the account balance at the same time without changing anything
 static int get_balance(int account_id) {
     printf("Getting balance for account %d (placeholder value)\n", account_id);
+    load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
-    if (!acc) return 0;
+    if (!acc) {
+        unload_account(&buffer_pool, account_id);
+        return 0;
+    }
 
     // Add Read Lock for the balance inquiry
     pthread_rwlock_rdlock(&acc->lock);
     int balance = acc->balance_centavos;
     pthread_rwlock_unlock(&acc->lock);
+    unload_account(&buffer_pool, account_id);
 
     return balance;
 }
@@ -43,21 +51,31 @@ static int get_balance(int account_id) {
 // rwlock so no one else can look at the account until done with the update (deposit and withdraw)
 static void deposit(int account_id, int amount_centavos) {
     printf("Depositing %d centavos to account %d\n", amount_centavos, account_id);
+    load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
-    if (!acc) return;
+    if (!acc) {
+        unload_account(&buffer_pool, account_id);
+        return;
+    }
 
     // Add Write Lock for modification
     pthread_rwlock_wrlock(&acc->lock);
     acc->balance_centavos += amount_centavos;
     pthread_rwlock_unlock(&acc->lock);
 
+    unload_account(&buffer_pool, account_id);
+
     record_deposit(amount_centavos);
 }
 
 static bool withdraw(int account_id, int amount_centavos) {
     printf("Withdrawing %d centavos from account %d\n", amount_centavos, account_id);
+    load_account(&buffer_pool, account_id);
     Account* acc = find_account(account_id);
-    if (!acc) return false;
+    if (!acc) {
+        unload_account(&buffer_pool, account_id);
+        return false;
+    }
 
     // Add Write Lock for modification
     pthread_rwlock_wrlock(&acc->lock);
@@ -65,11 +83,14 @@ static bool withdraw(int account_id, int amount_centavos) {
         acc->balance_centavos -= amount_centavos;
         pthread_rwlock_unlock(&acc->lock);
 
+        unload_account(&buffer_pool, account_id);
+
         record_withdraw(amount_centavos);
         return true;
     } 
     
     pthread_rwlock_unlock(&acc->lock);
+    unload_account(&buffer_pool, account_id);
     printf("Insufficient funds in account %d\n", account_id);
     return false; // Account not found, treat as insufficient funds for simplicity for now
 }
@@ -81,6 +102,8 @@ static bool transfer(int from_id, int to_id, int amount_centavos) {
     int i;
     bool success = false;
     Account *acc_first, *acc_second;
+    int first_id;
+    int second_id;
 
     if (from_id == to_id || amount_centavos <= 0) return false;
 
@@ -98,10 +121,17 @@ static bool transfer(int from_id, int to_id, int amount_centavos) {
     if (from_id < to_id) {
         acc_first = &bank->accounts[from_index];
         acc_second = &bank->accounts[to_index];
+        first_id = from_id;
+        second_id = to_id;
     } else {
         acc_first = &bank->accounts[to_index];
         acc_second = &bank->accounts[from_index];
+        first_id = to_id;
+        second_id = from_id;
     }
+
+    load_account(&buffer_pool, first_id);
+    load_account(&buffer_pool, second_id);
 
     pthread_rwlock_wrlock(&acc_first->lock);
     pthread_rwlock_wrlock(&acc_second->lock);
@@ -114,6 +144,9 @@ static bool transfer(int from_id, int to_id, int amount_centavos) {
 
     pthread_rwlock_unlock(&acc_second->lock);
     pthread_rwlock_unlock(&acc_first->lock);
+
+    unload_account(&buffer_pool, second_id);
+    unload_account(&buffer_pool, first_id);
 
     if (success) {
         record_withdraw(amount_centavos);

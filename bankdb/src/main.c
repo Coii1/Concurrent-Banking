@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "utils.h"
 #include "metrics.h"
+#include "buffer_pool.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
@@ -93,6 +94,7 @@ void parse_args(int argc, char* argv[]) {
 }
 
 Bank* bank = NULL; // Global bank instance for now, remove when buffer pool is implemented
+BufferPool buffer_pool;
 
 int main(int argc, char* argv[]) {
 
@@ -111,6 +113,7 @@ int main(int argc, char* argv[]) {
 
     //initialize bank, accounts, and locks.  
     bank = create_bank(); 
+    init_buffer_pool(&buffer_pool);
 
     // Use the variable populated by parse_args to populate bank struct
     if (load_accounts_file(bank, accounts_path)) {
