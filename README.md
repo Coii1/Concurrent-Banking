@@ -1,21 +1,51 @@
-# Flowchart
+# Concurrent Banking (CMSC 125 Lab 3)
+
+## Flowchart
 
 ![flowchart](flowchart.JPG)
 
-# Run Tests
-# From bankdb/ directory:
+## Build
 
-# Simple trace - basic operations test
-./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
+From bankdb/ directory:
 
-# Reader-heavy workload
-./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --tick-ms=100
+	make clean
+	make
 
-# Abort/rollback scenario
-./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --tick-ms=100
+Debug build (ThreadSanitizer):
 
-# Deadlock prevention test
-./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --tick-ms=100
+	make debug
 
-# Buffer pool stress test
-./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --tick-ms=100
+Run all provided tests:
+
+	make test
+
+## Usage
+
+Required flags:
+
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --deadlock=prevention --tick-ms=100
+
+Optional flags:
+
+- --verbose (print per-tick logs)
+
+## Features Implemented
+
+- Multi-threaded transaction execution with timer thread
+- Per-account reader-writer locks
+- Deadlock prevention via lock ordering
+- Bounded buffer pool with semaphores
+- Final report with conservation check and transaction status
+
+## Known Limitations
+
+- Deadlock detection strategy is not implemented (prevention only)
+- Account lookup is linear by account_id
+
+## Run Tests (manual)
+
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --deadlock=prevention --tick-ms=100
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --deadlock=prevention --tick-ms=100
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --deadlock=prevention --tick-ms=100
+	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --deadlock=prevention --tick-ms=100
