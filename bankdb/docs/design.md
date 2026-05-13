@@ -1,51 +1,53 @@
 # Design Notes
 
-This document should explain architectural decisions, concurrency strategy, synchronization choices, and tradeoffs.
+## Overview
+This project implements a concurrent in-memory banking system using pthreads. Each transaction runs in its own thread, operations are scheduled by a global tick timer, and account access is synchronized with per-account reader-writer locks. A bounded buffer pool models account loading with semaphores.
 
+## Build and Run
+From the bankdb/ directory:
 
-To run:
-    cd bankdb
-    gcc -Wall -Wextra -std=c11 -Iinclude src/*.c -o bin/bankdb -pthread 
-    //other way: gcc -Wall -Wextra -std=c11 -g -O1 -Iinclude src/*.c -o bin/bankdb -pthread -fsanitize=thread
-    //other way: gcc -Wall -Wextra -std=c11 -Iinclude src/*.c -o bin/bankdb -pthread -fsanitize=thread
-    ./bin/bankdb tests/accounts.txt tests/trace_simple.txt
+    make clean
+    make
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
 
-    <!-- Other way to run -->
-    setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
+Manual build (without Makefile):
 
+    gcc -Wall -Wextra -std=c11 -Iinclude src/*.c -o bin/bankdb -pthread
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
 
-Note: current cli interface is 
-./bin/bankdb tests/accounts.txt tests/trace_simple.txt
+## Concurrency Model
+- Timer thread advances a global tick and wakes waiting transactions.
+- Each transaction thread waits for its start tick, then waits for each operation tick.
+- Account access uses per-account pthread_rwlock_t to allow concurrent reads and exclusive writes.
 
-instead of $ ./bankdb --accounts=accounts.txt --trace=trace.txt \
-        --deadlock=prevention --tick-ms=100
+## Deadlock Handling
+- Deadlock prevention is enforced by lock ordering in transfers.
+- Locks are acquired by ascending account ID to avoid circular wait.
+- The CLI only supports prevention (no detection mode).
 
-for simplcity and initial development.
-this is for the sake if simplicity for now
-TODO: implement proper CLI parsing with --accounts= 
+## Buffer Pool
+- A fixed-size buffer pool (BUFFER_POOL_SIZE) simulates loading accounts.
+- load_account() waits on empty_slots, marks a slot in use, then signals full_slots.
+- unload_account() waits on full_slots, frees the slot, then signals empty_slots.
+- Transactions call load_account/unload_account around each account access.
 
+## Metrics and Reporting
+- metrics_init() creates the mutex used by metrics counters before any threads start.
+- Deposits and withdrawals update total counters under a mutex.
+- Final report prints the actual transaction status (COMMITTED or ABORTED).
 
-account creation is inside bank creation directly to avoid memory leaks of separately allocating an Account struct
-Having another load_accounts function separately allocating memory for accounts and returning those account requires 
-freeing every allocated account slot 
-TODO: consult with sir Ren which is better // done, it's actually prefered in this case.
+## Data Structures
+- Bank contains a fixed array of Account records (MAX_ACCOUNTS) and a bank lock.
+- Account includes id, balance, and a pthread_rwlock_t.
+- Transactions store operations with per-op ticks and a start tick.
 
+## Known Limitations
+- Account lookup is linear by account_id, which is acceptable for lab scale but not optimal for large datasets.
+- The bank instance and buffer pool are global for simplicity.
 
-Transactions pointers array is currently initialized in main, NOT SURE if it should be added in the bank struct. 
-Also, for each transaction operation, a start tick field is added to the operation to only wake the operation 
-that need to wake at a tick insted of them racing or just running sequentialy when the transaction is waked. 
-TODO: consult where transactions should be initialized. //done: Ok for now
-
-
-Bank instance is made global for now so that accounts can be accessed in transactions.c 
-this is temporary since bufferpool isn't implemented yet. 
-
-
-after implementing the TRANSFER function in the transaction thread, it is evident that given millions of accounts in a bank, having 
-to search for the index given the id is very inefficient.we should have a more efficient way to map account_id to its index in the 
-accounts array, such as a hash map or a direct mapping if account ids are guaranteed to be dense and within a certain range. for now,
-we will just do a linear search to find the indices of the from and to accounts, but this is a clear area for optimization in the future.
-
-
-issues found
-1. currently since global tick is initialized to 0 from the start, there are times when a transaction races first with the clock thread. so it executes first. 
+## Test Commands
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --tick-ms=100
+    ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --tick-ms=100
