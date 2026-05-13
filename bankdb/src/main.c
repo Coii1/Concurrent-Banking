@@ -110,6 +110,8 @@ int main(int argc, char* argv[]) {
     
     parse_args(argc, argv);
 
+    metrics_init();
+
     //initialize bank, accounts, and locks.  
     bank = create_bank(); 
 
