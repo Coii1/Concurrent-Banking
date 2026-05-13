@@ -206,14 +206,14 @@ int main(int argc, char* argv[]) {
     // Destroy mutex and condition variable
     timer_destroy();
 
+    print_final_report(bank, txs, txs_count, initial_sum);
+
     // Create transaction threads, and execute transactions
     for (int i = 0; i < MAX_TRANSACTIONS; i++) {
         if (txs[i] != NULL) {
             free(txs[i]);
         }
     }
-
-    print_final_report(bank, txs, txs_count, initial_sum);
 
     destroy_bank(bank);
     return 0;

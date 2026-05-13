@@ -69,6 +69,9 @@ Manual build (without Makefile):
 ## ThreadSanitizer Notes
 - Use `make debug` to build with ThreadSanitizer.
 - Run `trace_readers.txt` with prevention and confirm zero warnings.
+- Command:
+
+    setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
 
 ## Additional Tests
 - trace_abort_mid.txt: abort should stop later ops in the same transaction.

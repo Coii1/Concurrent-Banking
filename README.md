@@ -22,7 +22,7 @@ Run all provided tests:
 ThreadSanitizer check (manual):
 
 	make debug
-	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
 
 ## Usage
 
