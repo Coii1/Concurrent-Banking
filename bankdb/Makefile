@@ -10,7 +10,7 @@ CFLAGS_DEBUG = $(CFLAGS_COMMON) -g -O1 -fsanitize=thread
 LDFLAGS = -pthread
 LDFLAGS_DEBUG = -pthread -fsanitize=thread
 
-.PHONY: all debug clean test
+.PHONY: all debug debug-all clean test
 
 all: $(TARGET)
 
@@ -21,6 +21,15 @@ $(TARGET): $(SOURCES)
 debug:
 	@mkdir -p bin
 	$(CC) $(CFLAGS_DEBUG) $(INCLUDES) $(SOURCES) -o $(TARGET) $(LDFLAGS_DEBUG)
+
+debug-all: debug
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_readers.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_deadlock.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_buffer.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_abort_mid.txt --deadlock=prevention --tick-ms=100
+	setarch $(uname -m) -R ./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_rw_mix.txt --deadlock=prevention --tick-ms=100
 
 test: all
 	./bin/bankdb --accounts=tests/accounts.txt --trace=tests/trace_simple.txt --tick-ms=100
